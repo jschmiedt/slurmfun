@@ -5,7 +5,7 @@ fprintf('Trying to evaluate %s\n')
 try
     out = feval(func, inputVars{:});
 catch me
-    warning('An error occurred')
+    display(me)
     out = me;
 end
 fprintf('Storing output in %s\n', outputFile)
