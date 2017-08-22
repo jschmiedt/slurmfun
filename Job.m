@@ -10,8 +10,7 @@ classdef Job < handle
         isRunning = false
         finalized = false
         deleteLogfile = true
-        state
-        finalState
+        state        
     end
     
     properties ( Constant = true, Access = private )
@@ -28,7 +27,7 @@ classdef Job < handle
             cmd = sprintf('%s -p %s -o %s %s "%s"', ...
                 baseCmd, partition, logFile, obj.matlabCaller, cmd);
             [result, id] = system(cmd);
-            assert(result == 0, 'Submission failed')        
+            assert(result == 0, 'Submission failed: %s\n', id)                    
             obj.id = uint32(sscanf(id,'%u'));
             obj.isRunning = true;                
             obj.submissionTime = datestr(now);
@@ -54,7 +53,7 @@ classdef Job < handle
         function delete(obj)            
             cmd = sprintf('scancel %u', obj.id);
             result = system(cmd);      
-            assert(result == 0, 'Could not cancle job %u', obj.id)
+            assert(result == 0, 'Could not cancel job %u', obj.id)
             if obj.deleteLogfile
                 delete(obj.logFile)
             end
