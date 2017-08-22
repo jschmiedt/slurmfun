@@ -100,9 +100,14 @@ for iJob = 1:nJobs
     logFiles{iJob} = [baseFile '.log'];
     
     
-    inputArgs = {inputArguments{iJob}};
+    inputArgs = inputArguments(iJob);
     outputFile = outputFiles{iJob};
-    save(inputFiles{iJob}, 'func', 'inputArgs', 'userPath', 'outputFile')
+    inputArgsSize = whos('inputArgs');
+    if inputArgsSize.bytes > 2*1024*1024*1024
+        error(['Size of the input arguments must not exceed 2 GB. ', ...
+        'For large data please pass a filename instead of the data'])
+    end           
+    save(inputFiles{iJob}, 'func', 'inputArgs', 'userPath', 'outputFile', '-v6')
 end
 %% Submit jobs
 
@@ -141,26 +146,26 @@ while any(ismember([submittedJobs.id], ids)) && ~breakOut
     [ids, states] = get_running_jobs();
 
     notRunning = ~ismember([submittedJobs.id], ids);
-    if toc(tLoop) > 5
+    if toc(tLoop) > 60
         fprintf('\t%u jobs remaining\n', sum(~notRunning));
         tLoop = tic;
     end
     [submittedJobs(notRunning).isRunning] = deal(false);
     notFinalized = ~[submittedJobs.finalized];
-    fetchStatus = find(notRunning & notFinalized);
-    for iJob = 1:length(fetchStatus)
-        jobid = submittedJobs(fetchStatus(iJob)).id;
-        submittedJobs(fetchStatus(iJob)).finalized = true;
-        submittedJobs(fetchStatus(iJob)).state = get_final_status(jobid);
+    iCompleteButNotFinalized = find(notRunning & notFinalized);
+    for iJob = 1:length(iCompleteButNotFinalized)
+        jobid = submittedJobs(iCompleteButNotFinalized(iJob)).id;
+        submittedJobs(iCompleteButNotFinalized(iJob)).finalized = true;
+        submittedJobs(iCompleteButNotFinalized(iJob)).state = get_final_status(jobid);
         
-        if strcmp(submittedJobs(fetchStatus(iJob)).state, 'COMPLETED')
-            out{fetchStatus(iJob)} = load(outputFiles{fetchStatus(iJob)});
-            if isa(out{fetchStatus(iJob)}.out, 'MException')
+        if strcmp(submittedJobs(iCompleteButNotFinalized(iJob)).state, 'COMPLETED')
+            tmpOut = load(outputFiles{iCompleteButNotFinalized(iJob)});
+            out{iCompleteButNotFinalized(iJob)} = tmpOut.out;
+            if isa(tmpOut, 'MException')
                 warning('An error occured in job %u:%u. See %s', ...
-                    fetchStatus(iJob), jobid, submittedJobs(fetchStatus(iJob)).logFile)
-                disp( getReport( out{fetchStatus(iJob)}.out, ...
-                    'extended', 'hyperlinks', 'on' ) )
-                submittedJobs(fetchStatus(iJob)).deleteLogfile = false;
+                    iCompleteButNotFinalized(iJob), jobid, submittedJobs(iCompleteButNotFinalized(iJob)).logFile)
+                disp(getReport(tmpOut, 'extended', 'hyperlinks', 'on' ) )
+                submittedJobs(iCompleteButNotFinalized(iJob)).deleteLogfile = false;
                 
                 if parser.Results.stopOnError                                        
                     breakOut = true;
@@ -175,7 +180,7 @@ while any(ismember([submittedJobs.id], ids)) && ~breakOut
 end
 
 iCompleted = ~cellfun(@isempty, out);
-iMatlabError = cellfun(@(x) isa(x.out, 'MException'), out(iCompleted));
+iMatlabError = cellfun(@(x) isa(x, 'MException'), out(iCompleted));
 
 
 fprintf('\n')
@@ -187,6 +192,7 @@ if sum(iMatlabError) > 0
     fprintf('Log files of failed jobs can be found in %s\n', ...
         parser.Results.slurmWorkingDirectory);
 end
+
 
 
 if nargout == 0

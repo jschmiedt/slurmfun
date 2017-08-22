@@ -50,10 +50,13 @@ classdef Job < handle
             end
             
         end        
-        function delete(obj)            
-            cmd = sprintf('scancel %u', obj.id);
-            result = system(cmd);      
-            assert(result == 0, 'Could not cancel job %u', obj.id)
+        function delete(obj)    
+            if obj.isRunning
+                cmd = sprintf('scancel %u', obj.id);
+                result = system(cmd);      
+                assert(result == 0, 'Could not cancel job %u', obj.id)
+            end
+            
             if obj.deleteLogfile
                 delete(obj.logFile)
             end
