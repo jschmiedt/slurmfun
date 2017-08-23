@@ -21,7 +21,7 @@ end
 
 %% Parallel computation
 tStart = tic;
-Z = slurmfun(@calcfrac, cfg, 'partition','8GB');
+Z = slurmfun(@calcfrac, cfg, 'partition','8GBS');
 tParallel = toc;
 
 fprintf('Parallel computation took %g s\n', tParallel)

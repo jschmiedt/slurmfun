@@ -34,6 +34,22 @@ function out = slurmfun(func, inputArguments, varargin)
 % OUTPUT
 % ------
 %   argout : cell array of output argument
+% 
+% 
+% EXAMPLE
+% -------
+% This example will spawn 50 jobs that pause for 50-70s.
+% 
+% nJobs = 50;
+% inputArgs = num2cell(randi(20,nJobs,1)+50); 
+% out = slurmfun(@pause, inputArgs, ...
+%     'partition', '8GBS', ...
+%     'stopOnError', false);
+% 
+% 
+% 
+% See also CELLFUN
+% 
 
 % TODO
 %  - stacking
@@ -168,7 +184,7 @@ tStart = tic;
 out = cell(1,nJobs);
 breakOut = false;
 
-printString = sprintf('Remaining jobs: %6d\nElapsed time: %6.0f min\n', ...
+printString = sprintf('Remaining jobs: %6d\nElapsed time: %6.1f min\n', ...
     sum([submittedJobs.isRunning]), toc(tStart));
 fprintf(printString)
 
@@ -176,7 +192,7 @@ fprintf(printString)
 while any(ismember([submittedJobs.id], ids)) && ~breakOut
     pause(5)
     fprintf(repmat('\b',1,length(printString)));
-    printString = sprintf('\nRemaining jobs: %6d\nElapsed time: %6.0f min', ...
+    printString = sprintf('\nRemaining jobs: %6d\nElapsed time: %6.1f min', ...
         sum([submittedJobs.isRunning]), toc(tStart)/60);
     fprintf(printString)
     
