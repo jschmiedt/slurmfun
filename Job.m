@@ -20,12 +20,13 @@ classdef Job < handle
     end
     
     methods
-        function obj = Job(cmd, partition, logFile)
+        function obj = Job(cmd, partition, logFile, matlabBinary)
+	    [folder,~,~] = fileparts(logFile);
             baseCmd = sprintf(...
-                'sbatch -A %s --uid=slurm --gid=%u --parsable ', ...
-                obj.account, obj.gid);
-            cmd = sprintf('%s -p %s -o %s %s "%s"', ...
-                baseCmd, partition, logFile, obj.matlabCaller, cmd);
+                'sbatch -A %s -D %s --uid=slurm --gid=%u --parsable ', ...
+                obj.account, folder, obj.gid);
+            cmd = sprintf('%s -p %s -o %s %s -m "%s" "%s"', ...
+                baseCmd, partition, logFile, obj.matlabCaller, matlabBinary, cmd);
             [result, id] = system(cmd);
             assert(result == 0, 'Submission failed: %s\n', id)                    
             obj.id = uint32(sscanf(id,'%u'));

@@ -57,9 +57,17 @@ function out = slurmfun(func, inputArguments, varargin)
 %  - memory profiling
 
 if verLessThan('matlab', 'R2014a')
-    error('MATLAB:slurmfun:MATLAB versions older than R2014a are not supported')
+    error('MATLAB:slurmfun:MATLAB versions older than R2015b are not supported')
 end
 
+% empty the LD_PRELOAD environment variable 
+% vglrun libraries don't have SUID bit, sbatch does. See
+% ihttps://virtualgl.org/vgldoc/2_2/#hd0012
+
+LD_PRELOAD = getenv('LD_PRELOAD');
+if ~isempty(LD_PRELOAD)
+    setenv('LD_PRELOAD', '');
+end
 
 %% Handle inputs
 parser = inputParser;
@@ -79,7 +87,7 @@ parser.addParameter('partition', defaultPartition, ...
 parser.addParameter('useUserPath', true, @islogical);
 
 % MATLAB
-parser.addParameter('matlabCmd', fullfile(matlabroot, 'bin', 'matlab'), @isstr);
+parser.addParameter('matlabCmd', fullfile(matlabroot, 'bin', 'matlab'), @(x) ischar(x) && exist(x, 'file') == 2)
 
 % SLURM home folder
 account = getenv('USER');
@@ -97,6 +105,12 @@ parser.parse(func, inputArguments, varargin{:})
 
 if ischar(parser.Results.func)
     func = str2func(parser.Results.func);
+end
+
+if parser.Results.useUserPath
+    assert(strcmp(parser.Results.matlabCmd, ...
+        fullfile(matlabroot, 'bin', 'matlab')), ...
+        'If useUserPath is true, matlabBinary must match current MATLAB')
 end
 
 nJobs = length(inputArguments);
@@ -119,7 +133,7 @@ assert(result == 0, ...
 
 
 %% Create input files
-
+addpath(pwd)
 userPath = path(); %#ok<*NASGU>
 inputFiles = cell(1,nJobs);
 outputFiles = cell(1,nJobs);
@@ -163,7 +177,7 @@ for iJob = 1:nJobs
             ], inputFiles{iJob});
     end
     
-    submittedJobs(iJob) = Job(cmd, parser.Results.partition, logFiles{iJob});
+    submittedJobs(iJob) = Job(cmd, parser.Results.partition, logFiles{iJob}, parser.Results.matlabCmd);
     if parser.Results.deleteFiles
         submittedJobs(iJob).deleteLogfile = true;
     end
@@ -174,7 +188,7 @@ fprintf('Submission of %u jobs took %g s\n', nJobs, tSubmission)
 % Setup cleanup after completion/failure
 if parser.Results.deleteFiles
     cleanup = onCleanup(@() delete_if_exist([inputFiles, outputFiles], ...
-        parser.Results.slurmWorkingDirectory, slurmWDCreated));
+        parser.Results.slurmWorkingDirectory, slurmWDCreated, LD_PRELOAD));
 end
 
 %% Wait for jobs
@@ -275,7 +289,7 @@ end
 
 end
 
-function delete_if_exist(delFiles, delFolder, folderFlag)
+function delete_if_exist(delFiles, delFolder, folderFlag, LD_PRELOAD)
 fprintf('Deleting temporary input/output files from %s...\n', delFolder)
 warning('off', 'MATLAB:DELETE:FileNotFound')
 delete(delFiles{:})
@@ -288,4 +302,8 @@ if folderFlag && length(dir(delFolder)) == 2
     rmdir(delFolder)
 end
 
+% restore original LD_PRELOAD variable
+setenv('LD_PRELOAD', LD_PRELOAD)
+
 end
+
