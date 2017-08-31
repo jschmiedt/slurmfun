@@ -55,6 +55,7 @@ function out = slurmfun(func, inputArguments, varargin)
 %  - stacking
 %  - variable number of input/output arguments
 %  - memory profiling
+%  - license checkout
 
 if verLessThan('matlab', 'R2014a')
     error('MATLAB:slurmfun:MATLAB versions older than R2015b are not supported')
