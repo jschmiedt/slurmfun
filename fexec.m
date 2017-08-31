@@ -3,7 +3,13 @@ function out = fexec(func, inputVars, outputFile)
 % input file must contain the variables func, inputVars, outputFile
 fprintf('Trying to evaluate %s\n', func2str(func))
 try
-    out = feval(func, inputVars{:});
+    if nargout(func) == 1
+       out = feval(func, inputVars{:});
+    elseif nargout(func) == 0
+       feval(func, inputVars{:});
+       out = 'no output';
+    end
+
     outSize = whos('out');
     if outSize.bytes > 2*1024*1024*1024
         error(['Size of the output arguments must not exceed 2 GB. ', ...
