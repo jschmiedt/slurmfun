@@ -30,7 +30,12 @@ function out = slurmfun(func, inputArguments, varargin)
 %                     files after completion of all jobs. Default is true.
 %   'useUserPath'   : boolean flag flag whether the MATLAB path of the user
 %                     should be used in job. Default is true.
-%
+%   'waitForToolboxes' : cell array of toolbox names to wait for. Default
+%   is {}. Avilable toolboxes are 
+%       {'statistics_toolbox', 'signal_toolbox', 'image_toolbox', ...
+%        'curve_fitting_toolbox', 'GADS_toolbox', 'optimization_toolbox'}
+% 
+% 
 % OUTPUT
 % ------
 %   argout : cell array of output argument
@@ -55,10 +60,9 @@ function out = slurmfun(func, inputArguments, varargin)
 %  - stacking
 %  - variable number of input/output arguments
 %  - memory profiling
-%  - license checkout
 
 if verLessThan('matlab', 'R2014a')
-    error('MATLAB:slurmfun:MATLAB versions older than R2015b are not supported')
+    error('MATLAB:slurmfun:MATLAB versions older than R2014a are not supported')
 end
 
 % empty the LD_PRELOAD environment variable 
@@ -69,6 +73,9 @@ LD_PRELOAD = getenv('LD_PRELOAD');
 if ~isempty(LD_PRELOAD)
     setenv('LD_PRELOAD', '');
 end
+
+toolboxes = ver;
+
 
 %% Handle inputs
 parser = inputParser;
@@ -93,13 +100,19 @@ parser.addParameter('matlabCmd', fullfile(matlabroot, 'bin', 'matlab'), @(x) isc
 % SLURM home folder
 account = getenv('USER');
 submissionTime = datestr(now, 'YYYYmmDD-HHMMss');
-parser.addParameter('slurmWorkingDirectory', fullfile('/mnt/hpx/slurm', account, [account '_' submissionTime]), @isstr);
+parser.addParameter('slurmWorkingDirectory', ...
+    fullfile('/mnt/hpx/slurm', account, [account '_' submissionTime]), @isstr);
 
 % stop on error
 parser.addParameter('stopOnError', true, @islogical);
 
 % delete files
 parser.addParameter('deleteFiles', true, @islogical);
+
+% wait for toolbox licenses
+availableToolboxes = {'statistics_toolbox', 'signal_toolbox', 'image_toolbox', ...
+    'curve_fitting_toolbox', 'GADS_toolbox', 'optimization_toolbox'};
+parser.addParameter('waitForToolboxes', {}, @(x) all(ismember(x, availableToolboxes)));
 
 % parse inputs
 parser.parse(func, inputArguments, varargin{:})
@@ -163,25 +176,37 @@ end
 fprintf('Submitting %u jobs into %s at %s\n', ...
     nJobs, parser.Results.partition, datestr(now))
 tic
+
+
+licenseCheckoutCmd = '';
+if ~isempty(parser.Results.waitForToolboxes)
+    licenseCheckoutCmd = 'fprintf(''Waiting for licenses\n'');';
+    for iToolbox = 1:length(parser.Results.waitForToolboxes)
+        toolboxName = parser.Results.waitForToolboxes{iToolbox};
+        licenseCheckoutCmd = [licenseCheckoutCmd, ...
+            sprintf('while (~license(''checkout'',''%s'')); pause(0.5); end;', toolboxName)];
+    end
+end
+
+if parser.Results.useUserPath
+    userPathCmd = 'fprintf(''Loading userpath\n''), path(userPath);';
+else 
+    userPathCmd = '';
+end
+fexecCmd = 'try fexec(func, inputArgs, outputFile); catch exit; end';
+
+
 for iJob = 1:nJobs
-    if parser.Results.useUserPath
-        cmd = sprintf([...
-            'load(''%s''); path(userPath);' ...
-            'try fexec(func, inputArgs, outputFile);' ...
-            'catch exit; end' ...
-            ], inputFiles{iJob});
-    else
-        cmd = sprintf([...
-            'load(''%s'');' ...
-            'try fexec(func, inputArgs, outputFile);' ...
-            'catch exit; end' ...
-            ], inputFiles{iJob});
-    end
+    cmd = '';
+    loadCmd = sprintf('load(''%s'');', inputFiles{iJob});    
+
+    cmd = [licenseCheckoutCmd, loadCmd, userPathCmd fexecCmd];
+    submittedJobs(iJob) = Job(cmd, ...
+        parser.Results.partition, logFiles{iJob}, parser.Results.matlabCmd);    
+    submittedJobs(iJob).deleteLogfile = parser.Results.deleteFiles;
     
-    submittedJobs(iJob) = Job(cmd, parser.Results.partition, logFiles{iJob}, parser.Results.matlabCmd);
-    if parser.Results.deleteFiles
-        submittedJobs(iJob).deleteLogfile = true;
-    end
+        
+    
 end
 tSubmission = toc;
 fprintf('Submission of %u jobs took %g s\n', nJobs, tSubmission)
