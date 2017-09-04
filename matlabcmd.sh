@@ -1,7 +1,12 @@
 #!/bin/bash
 
 matlab='/opt/matlab-2015b/bin/matlab'
-export HOME=/mnt/hpx/slurm/slurm
+export HOME=/mnt/hpx/slurm/$SLURM_JOB_ACCOUNT
+
+if [ ! -d "$HOME" ]; then
+	mkdir $HOME
+fi
+
 
 while :; do
     case $1 in
