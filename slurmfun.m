@@ -84,7 +84,8 @@ parser = inputParser;
 parser.addRequired('func', @(x) isa(x, 'function_handle')||ischar(x));
 
 % input arguments
-parser.addRequired('inputArguments', @iscell);
+%parser.addRequired('inputArguments', @iscell);
+assert(iscell(inputArguments), 'Input arguments must a cell array')
 
 % partitions
 [availablePartitions,defaultPartition] = get_available_partitions();
@@ -115,7 +116,7 @@ availableToolboxes = {'statistics_toolbox', 'signal_toolbox', 'image_toolbox', .
 parser.addParameter('waitForToolboxes', {}, @(x) all(ismember(x, availableToolboxes)));
 
 % parse inputs
-parser.parse(func, inputArguments, varargin{:})
+parser.parse(func, varargin{:})
 
 if ischar(parser.Results.func)
     func = str2func(parser.Results.func);
