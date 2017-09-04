@@ -240,7 +240,9 @@ while any(ismember([submittedJobs.id], ids)) && ~breakOut
     ids = get_running_jobs();
     
     notRunning = ~ismember([submittedJobs.id], ids);
-    [submittedJobs(notRunning).isRunning] = deal(false);
+    if any(notRunning)
+        [submittedJobs(notRunning).isRunning] = deal(false);
+    end
     notFinalized = ~[submittedJobs.finalized];
     iCompleteButNotFinalized = find(notRunning & notFinalized);
     for iJob = 1:length(iCompleteButNotFinalized)
