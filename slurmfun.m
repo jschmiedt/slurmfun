@@ -61,7 +61,7 @@ function out = slurmfun(func, inputArguments, varargin)
 %  - variable number of input/output arguments
 %  - memory profiling
 
-if verLessThan('matlab', '2014a')
+if verLessThan('matlab', 'R2014a') || verLessThan('MATLAB', '8.3')
     error('MATLAB:slurmfun:MATLAB versions older than R2014a are not supported')
 end
 
