@@ -281,7 +281,7 @@ while any(ismember([submittedJobs.id], ids)) && ~breakOut
                 end
                 
                 % get_running_jobs based on squeue sometimes doesn't return the ids
-                % properly. Therfore we check again, the status of the jobs
+                % properly. Therfore we check again the status of the jobs
             case 'RUNNING'
                 submittedJobs(jJob).isRunning = true;
                 submittedJobs(jJob).finalized = false;
@@ -296,6 +296,8 @@ while any(ismember([submittedJobs.id], ids)) && ~breakOut
                     breakOut = true;
                     break
                 end
+            otherwise
+                submittedJobs(jJob).finalized = false;
         end
     end
     
