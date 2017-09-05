@@ -185,7 +185,12 @@ if ~isempty(parser.Results.waitForToolboxes)
     for iToolbox = 1:length(parser.Results.waitForToolboxes)
         toolboxName = parser.Results.waitForToolboxes{iToolbox};
         licenseCheckoutCmd = [licenseCheckoutCmd, ...
-            sprintf('while (~license(''checkout'',''%s'')); pause(0.5); end;', toolboxName)];
+            sprintf([   'licenseAvailable = false;'
+                        'while ~licenseAvailable;'
+                            '[licenseAvailable, ~] = license(''checkout'',''%s'');'
+                            'pause(1);'
+                        'end'], ...
+                        toolboxName);];
     end
 end
 
