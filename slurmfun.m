@@ -235,7 +235,7 @@ printString = sprintf('Remaining jobs: %6d\nElapsed time: %6.1f min\n', ...
 fprintf(printString)
 
 
-while any(ismember([submittedJobs.id], ids)) && ~breakOut
+while any([submittedJobs.isRunning]) && ~breakOut
     pause(5)
     fprintf(repmat('\b',1,length(printString)));
     printString = sprintf('\nRemaining jobs: %6d\nElapsed time: %6.1f min', ...
@@ -246,9 +246,11 @@ while any(ismember([submittedJobs.id], ids)) && ~breakOut
     ids = get_running_jobs();
     
     notRunning = ~ismember([submittedJobs.id], ids);
-    if any(notRunning)
-        [submittedJobs(notRunning).isRunning] = deal(false);
-    end
+    isRunning = ismember([submittedJobs.id], ids);
+    
+    [submittedJobs(isRunning).isRunning] = deal(true);
+    [submittedJobs(~isRunning).isRunning] = deal(false);
+    
     notFinalized = ~[submittedJobs.finalized];
     iCompleteButNotFinalized = find(notRunning & notFinalized);
     for iJob = 1:length(iCompleteButNotFinalized)
@@ -297,6 +299,7 @@ while any(ismember([submittedJobs.id], ids)) && ~breakOut
                     break
                 end
             otherwise
+                submittedJobs(jJob).isRunning = true;
                 submittedJobs(jJob).finalized = false;
         end
     end
