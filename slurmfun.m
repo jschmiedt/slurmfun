@@ -248,8 +248,12 @@ while any([submittedJobs.isRunning]) && ~breakOut
     notRunning = ~ismember([submittedJobs.id], ids);
     isRunning = ismember([submittedJobs.id], ids);
     
-    [submittedJobs(isRunning).isRunning] = deal(true);
-    [submittedJobs(~isRunning).isRunning] = deal(false);
+    if any(isRunning)
+        [submittedJobs(isRunning).isRunning] = deal(true);
+    end
+    if any(~isRunning)
+        [submittedJobs(~isRunning).isRunning] = deal(false);
+    end
     
     notFinalized = ~[submittedJobs.finalized];
     iCompleteButNotFinalized = find(notRunning & notFinalized);
