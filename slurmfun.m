@@ -306,6 +306,7 @@ while any([submittedJobs.isRunning]) && ~breakOut
                 submittedJobs(jJob).isRunning = true;
                 submittedJobs(jJob).finalized = false;
         end
+        pause(0.005)
     end
     
     
