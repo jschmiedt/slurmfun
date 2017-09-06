@@ -28,7 +28,7 @@ classdef Job < handle
             cmd = sprintf('%s -p %s -o %s %s -m "%s" "%s"', ...
                 baseCmd, partition, logFile, obj.matlabCaller, matlabBinary, cmd);
             [result, id] = system(cmd);
-            assert(result == 0, 'Submission failed: %s\n', id)                    
+            assert(result == 0 || isempty(id), 'Submission failed: %s\n', id)                    
             obj.id = uint32(sscanf(id,'%u'));
             obj.isRunning = true;                
             obj.submissionTime = datestr(now);

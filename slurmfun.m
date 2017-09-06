@@ -211,7 +211,7 @@ for iJob = 1:nJobs
         parser.Results.partition, logFiles{iJob}, parser.Results.matlabCmd);    
     submittedJobs(iJob).deleteLogfile = parser.Results.deleteFiles;
     
-    pause(0.001)    
+    pause(0.005)    
     
 end
 tSubmission = toc;
