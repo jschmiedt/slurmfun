@@ -61,7 +61,7 @@ function out = slurmfun(func, inputArguments, varargin)
 %  - variable number of input/output arguments
 %  - memory profiling
 
-if verLessThan('matlab', 'R2015b') || verLessThan('MATLAB', '8.3')
+if verLessThan('matlab', 'R2014a') || verLessThan('MATLAB', '8.3')
     error('MATLAB:slurmfun:MATLAB versions older than R2014a are not supported')
 end
 
@@ -211,7 +211,7 @@ for iJob = 1:nJobs
         parser.Results.partition, logFiles{iJob}, parser.Results.matlabCmd);    
     submittedJobs(iJob).deleteLogfile = parser.Results.deleteFiles;
     
-    pause(0.005)    
+    pause(0.001)    
     
 end
 tSubmission = toc;
@@ -225,25 +225,28 @@ end
 
 %% Wait for jobs
 fprintf('Waiting for jobs to complete\n')
-ids = get_running_jobs();
+% [ids, state] = get_running_jobs();
 tStart = tic;
 out = cell(1,nJobs);
 breakOut = false;
 
-printString = sprintf('Remaining jobs: %6d\nElapsed time: %6.1f min\n', ...
+printString = sprintf('PENDING/RUNNING jobs: %6d\nElapsed time: %6.1f min\n', ...
     sum([submittedJobs.isRunning]), toc(tStart));
 fprintf(printString)
 
 
 while any([submittedJobs.isRunning]) && ~breakOut
     pause(5)
+    
+    [ids, ~] = get_running_jobs();
+    
     fprintf(repmat('\b',1,length(printString)));
-    printString = sprintf('\nRemaining jobs: %6d\nElapsed time: %6.1f min', ...
+    printString = sprintf('PENDING/RUNNING jobs: %6d\nElapsed time: %6.1f min', ...
         sum([submittedJobs.isRunning]), toc(tStart)/60);
     fprintf(printString)
     
     
-    ids = get_running_jobs();
+    
     
     notRunning = ~ismember([submittedJobs.id], ids);
     isRunning = ismember([submittedJobs.id], ids);
@@ -286,8 +289,6 @@ while any([submittedJobs.isRunning]) && ~breakOut
                    
                 end
                 
-                % get_running_jobs based on squeue sometimes doesn't return the ids
-                % properly. Therfore we check again the status of the jobs
             case 'RUNNING'
                 submittedJobs(jJob).isRunning = true;
                 submittedJobs(jJob).finalized = false;
@@ -306,7 +307,7 @@ while any([submittedJobs.isRunning]) && ~breakOut
                 submittedJobs(jJob).isRunning = true;
                 submittedJobs(jJob).finalized = false;
         end
-        pause(0.005)
+        pause(0.001)
     end
     
     

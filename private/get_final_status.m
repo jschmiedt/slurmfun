@@ -1,13 +1,8 @@
 function state = get_final_status(jobid)
 cmd = sprintf('scontrol -o show jobs  %u', jobid);
 
-[result, output] = system(cmd);
-tWait = tic;
-while isempty(output) && toc(tWait)<5
-    [result, output] = system(cmd);
-    pause(0.2)
-end
- 
+[result, output] = system(['/bin/bash -c "' cmd '"']);
+
 if result == 0 && ~isempty(output) 
     iJobState = strfind(output, 'JobState=');
     iNextSpace = strfind(output(iJobState:end), ' ');
