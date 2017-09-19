@@ -292,7 +292,7 @@ while any([submittedJobs.isRunning]) && ~breakOut
             case 'RUNNING'
                 submittedJobs(jJob).isRunning = true;
                 submittedJobs(jJob).finalized = false;
-            case {'FAILED','CANCELLED'}
+            case {'FAILED','CANCELLED','TIMEOUT'}
                 fprintf('\n')
                 warning('An error occured in job %u:%u. See %s', ...
                     jJob, jobid, submittedJobs(jJob).logFile)
