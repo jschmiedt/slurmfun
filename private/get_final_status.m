@@ -2,6 +2,8 @@ function state = get_final_status(jobid)
 cmd = sprintf('scontrol -o show jobs  %u', jobid);
 
 [result, output] = system(['/bin/bash -c "' cmd '"']);
+[~,remainder] = system('');
+output = [output remainder];
 
 if result == 0 && ~isempty(output) 
     iJobState = strfind(output, 'JobState=');
